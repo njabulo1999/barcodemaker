@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barcode Generator (CM Width)</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .generate-btn { background: #4CAF50; color: white; }
+        .print-btn { background: #2196F3; color: white; }
+        .clear-btn { background: #f44336; color: white; }
+        
+        /* A4 Page */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 15mm;
+            background: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        .barcode-container {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .barcode-label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .a4-page, .a4-page * {
+                visibility: visible;
+            }
+            .a4-page {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+            }
+            .controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>Barcode Generator (CM Width)</h2>
+        
+        <div class="control-group">
+            <div>
+                <label for="barcodeType">Barcode Type</label>
+                <select id="barcodeType">
+                    <option value="CODE128">CODE128</option>
+                    <option value="EAN13">EAN-13</option>
+                    <option value="UPC">UPC-A</option>
+                </select>
+            </div>
+            <div>
+                <label for="barcodeValue">Barcode Value</label>
+                <input type="text" id="barcodeValue" placeholder="Enter value">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div>
+                <label for="barcodeLabel">Label (optional)</label>
+                <input type="text" id="barcodeLabel" placeholder="Display text">
+            </div>
+            <div>
+                <label for="columns">Columns per row</label>
+                <input type="number" id="columns" min="1" max="6" value="3">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div>
+                <label for="widthCm">Total Width (cm)</label>
+                <input type="number" id="widthCm" min="1" max="20" step="0.1" value="5">
+            </div>
+            <div>
+                <label for="heightCm">Height (cm)</label>
+                <input type="number" id="heightCm" min="0.5" max="10" step="0.1" value="2">
+            </div>
+        </div>
+        
+        <button class="generate-btn" onclick="generateBarcode()">Generate Barcode</button>
+        <button class="print-btn" onclick="window.print()">Print A4 Page</button>
+        <button class="clear-btn" onclick="clearBarcodes()">Clear All</button>
+    </div>
+    
+    <div class="a4-page" id="a4Page">
+        <!-- Barcodes will appear here -->
+    </div>
+
+    <script>
+        // Convert cm to pixels (1cm ≈ 37.8px at 96dpi)
+        function cmToPx(cm) {
+            return cm * 37.8;
+        }
+
+        function generateBarcode() {
+            const type = document.getElementById('barcodeType').value;
+            const value = document.getElementById('barcodeValue').value.trim();
+            const label = document.getElementById('barcodeLabel').value.trim();
+            const widthCm = parseFloat(document.getElementById('widthCm').value);
+            const heightCm = parseFloat(document.getElementById('heightCm').value);
+            const columns = parseInt(document.getElementById('columns').value);
+            
+            if (!value) {
+                alert('Please enter a barcode value');
+                return;
+            }
+            
+            // Update grid columns
+            document.getElementById('a4Page').style.display = 'grid';
+            document.getElementById('a4Page').style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            
+            const container = document.createElement('div');
+            container.className = 'barcode-container';
+            container.style.width = widthCm + 'cm';
+            
+            if (label) {
+                const labelElement = document.createElement('div');
+                labelElement.className = 'barcode-label';
+                labelElement.textContent = label;
+                container.appendChild(labelElement);
+            }
+            
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.style.width = '100%';
+            container.appendChild(svg);
+            
+            try {
+                JsBarcode(svg, value, {
+                    format: type,
+                    lineColor: '#000000',
+                    width: 1, // Base unit (will scale with SVG width)
+                    height: cmToPx(heightCm),
+                    displayValue: true,
+                    fontSize: 12,
+                    margin: 5
+                });
+                
+                document.getElementById('a4Page').appendChild(container);
+                document.getElementById('barcodeValue').value = '';
+                document.getElementById('barcodeLabel').value = '';
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function clearBarcodes() {
+            if (confirm('Clear all barcodes?')) {
+                document.getElementById('a4Page').innerHTML = '';
+            }
+        }
+    </script>
+</body>
+</html>
