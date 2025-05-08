@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Barcode Generator (CM Width)</title>
+    <title>Pandora Barcode Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-            background: #f0f0f0;
+            background: #f8afff;
         }
         .controls {
-            background: white;
+            background: rgb(255, 198, 250);
             padding: 20px;
             border-radius: 8px;
             max-width: 800px;
@@ -42,7 +42,7 @@
             margin-right: 10px;
             margin-bottom: 10px;
         }
-        .generate-btn { background: #4CAF50; color: white; }
+        .generate-btn { background: #60af4c; color: white; }
         .print-btn { background: #2196F3; color: white; }
         .clear-btn { background: #f44336; color: white; }
         
@@ -54,16 +54,25 @@
             padding: 15mm;
             background: white;
             box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 2px;
         }
         .barcode-container {
-            display: inline-block;
-            margin: 10px;
             text-align: center;
             page-break-inside: avoid;
+            margin: 0;
+            padding: 2px;
+            box-sizing: border-box;
         }
         .barcode-label {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             font-weight: bold;
+            font-size: 0.9em;
+        }
+        svg {
+            display: block;
         }
         
         @media print {
@@ -90,7 +99,7 @@
 </head>
 <body>
     <div class="controls">
-        <h2>Barcode Generator (CM Width)</h2>
+        <h2>Pandora Barcode Generator</h2>
         
         <div class="control-group">
             <div>
@@ -114,18 +123,18 @@
             </div>
             <div>
                 <label for="columns">Columns per row</label>
-                <input type="number" id="columns" min="1" max="6" value="3">
+                <input type="number" id="columns" min="1" max="6" value="6">
             </div>
         </div>
         
         <div class="control-group">
             <div>
-                <label for="widthCm">Total Width (cm)</label>
-                <input type="number" id="widthCm" min="1" max="20" step="0.1" value="5">
+                <label for="widthCm">Width (cm)</label>
+                <input type="number" id="widthCm" min="1" max="5" step="1" value="2">
             </div>
             <div>
                 <label for="heightCm">Height (cm)</label>
-                <input type="number" id="heightCm" min="0.5" max="10" step="0.1" value="2">
+                <input type="number" id="heightCm" min="1" max="5" step="1" value="2">
             </div>
         </div>
         
@@ -139,7 +148,7 @@
     </div>
 
     <script>
-        // Convert cm to pixels (1cm ≈ 37.8px at 96dpi)
+        // Converts cm to pixels (1cm ≈ 37.8px at 96dpi)
         function cmToPx(cm) {
             return cm * 37.8;
         }
@@ -157,13 +166,15 @@
                 return;
             }
             
-            // Update grid columns
-            document.getElementById('a4Page').style.display = 'grid';
-            document.getElementById('a4Page').style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-            
             const container = document.createElement('div');
             container.className = 'barcode-container';
-            container.style.width = widthCm + 'cm';
+            
+            // Calculate width based on columns and page width
+            const pageWidthPx = 210 * 3.78; // 210mm in pixels
+            const paddingPx = 15 * 3.78 * 2; // 15mm padding on both sides
+            const availableWidth = pageWidthPx - paddingPx;
+            const containerWidth = (availableWidth / columns) - 2; // 2px for gap
+            container.style.width = (containerWidth / 37.8) + 'cm'; // Convert back to cm
             
             if (label) {
                 const labelElement = document.createElement('div');
@@ -183,8 +194,8 @@
                     width: 1, // Base unit (will scale with SVG width)
                     height: cmToPx(heightCm),
                     displayValue: true,
-                    fontSize: 12,
-                    margin: 5
+                    fontSize: 10, // Reduced from 12
+                    margin: 2 // Reduced from 5
                 });
                 
                 document.getElementById('a4Page').appendChild(container);
