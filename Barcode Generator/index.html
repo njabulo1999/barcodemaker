@@ -121,10 +121,6 @@
                 <label for="barcodeLabel">Label (optional)</label>
                 <input type="text" id="barcodeLabel" placeholder="Display text">
             </div>
-            <div>
-                <label for="columns">Columns per row</label>
-                <input type="number" id="columns" min="1" max="6" value="6">
-            </div>
         </div>
         
         <div class="control-group">
@@ -148,18 +144,16 @@
     </div>
 
     <script>
-        // Converts cm to pixels (1cm ≈ 37.8px at 96dpi)
-        function cmToPx(cm) {
-            return cm * 37.8;
-        }
+       
+        
 
         function generateBarcode() {
             const type = document.getElementById('barcodeType').value;
             const value = document.getElementById('barcodeValue').value.trim();
             const label = document.getElementById('barcodeLabel').value.trim();
-            const widthCm = parseFloat(document.getElementById('widthCm').value);
-            const heightCm = parseFloat(document.getElementById('heightCm').value);
-            const columns = parseInt(document.getElementById('columns').value);
+            const widthCm = parseFloat(document.getElementById(2).value);
+            const heightCm = parseFloat(document.getElementById(1).value);
+            const columns = parseInt(document.getElementById(5).value);
             
             if (!value) {
                 alert('Please enter a barcode value');
@@ -192,7 +186,7 @@
                     format: type,
                     lineColor: '#000000',
                     width: 1, // Base unit (will scale with SVG width)
-                    height: cmToPx(heightCm),
+                    height: 2,
                     displayValue: true,
                     fontSize: 10, // Reduced from 12
                     margin: 2 // Reduced from 5
