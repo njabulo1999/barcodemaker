@@ -45,6 +45,7 @@
         .generate-btn { background: #60af4c; color: white; }
         .print-btn { background: #2196F3; color: white; }
         .clear-btn { background: #f44336; color: white; }
+        .fetch-btn { background: #FF9800; color: white; }
         
         /* A4 Page */
         .a4-page {
@@ -112,29 +113,41 @@
             </div>
             <div>
                 <label for="barcodeValue">Barcode Value</label>
-                <input type="text" id="barcodeValue" placeholder="Enter value">
+                <input type="text" id="barcodeValue" placeholder="Enter value or will use SKU if empty">
             </div>
         </div>
         
         <div class="control-group">
             <div>
-                <label for="barcodeLabel">Label (optional)</label>
-                <input type="text" id="barcodeLabel" placeholder="Display text">
+                <label for="barcodeLabel">SKU</label>
+                <input type="text" id="barcodeLabel" placeholder="Enter SKU">
+            </div>
+            <div>
+                <label for="quantity">Quantity</label>
+                <input type="number" id="quantity" value="1" min="1" max="100">
             </div>
         </div>
         
         <div class="control-group">
             <div>
-                <label for="widthCm">Width (cm)</label>
-                <input type="number" id="widthCm" min="1" max="5" step="1" value="2">
+                <label for="width">Width (cm)</label>
+                <input type="number" id="width" value="5" min="1" max="20" step="0.1">
             </div>
             <div>
-                <label for="heightCm">Height (cm)</label>
-                <input type="number" id="heightCm" min="1" max="5" step="1" value="2">
+                <label for="height">Height (cm)</label>
+                <input type="number" id="height" value="2" min="1" max="10" step="0.1">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div>
+                <label for="columns">Columns per page</label>
+                <input type="number" id="columns" value="4" min="1" max="10">
             </div>
         </div>
         
         <button class="generate-btn" onclick="generateBarcode()">Generate Barcode</button>
+        <button class="fetch-btn" onclick="fetchBarcodeFromDatabase()">Fetch from Database</button>
         <button class="print-btn" onclick="window.print()">Print A4 Page</button>
         <button class="clear-btn" onclick="clearBarcodes()">Clear All</button>
     </div>
@@ -144,62 +157,112 @@
     </div>
 
     <script>
-       
-        
+        // Mock database - replace with actual database connection
+        const mockDatabase = {
+            "12345": { barcode: "123456789012", name: "Product A" },
+            "67890": { barcode: "987654321098", name: "Product B" },
+            "PANDORA-001": { barcode: "5901234567890", name: "Silver Bracelet" },
+            "PANDORA-002": { barcode: "5909876543210", name: "Gold Charm" }
+        };
 
-        function generateBarcode() {
-            const type = document.getElementById('barcodeType').value;
-            const value = document.getElementById('barcodeValue').value.trim();
-            const label = document.getElementById('barcodeLabel').value.trim();
-            const widthCm = parseFloat(document.getElementById(2).value);
-            const heightCm = parseFloat(document.getElementById(1).value);
-            const columns = parseInt(document.getElementById(5).value);
+        function fetchBarcodeFromDatabase() {
+            const sku = document.getElementById('barcodeLabel').value.trim();
             
-            if (!value) {
-                alert('Please enter a barcode value');
+            if (!sku) {
+                alert('Please enter a SKU to fetch from database');
                 return;
             }
             
-            const container = document.createElement('div');
-            container.className = 'barcode-container';
+            // Simulate database fetch with timeout
+            document.getElementById('barcodeLabel').disabled = true;
+            document.querySelector('.fetch-btn').disabled = true;
+            document.querySelector('.fetch-btn').textContent = 'Fetching...';
+            
+            setTimeout(() => {
+                // In a real implementation, you would make an AJAX call to your server here
+                const product = mockDatabase[sku];
+                
+                if (product) {
+                    document.getElementById('barcodeValue').value = product.barcode;
+                    document.getElementById('barcodeLabel').value = sku + " - " + product.name;
+                    generateBarcode();
+                } else {
+                    alert('SKU not found in database');
+                }
+                
+                document.getElementById('barcodeLabel').disabled = false;
+                document.querySelector('.fetch-btn').disabled = false;
+                document.querySelector('.fetch-btn').textContent = 'Fetch from Database';
+            }, 500);
+        }
+
+        function generateBarcode() {
+            const type = document.getElementById('barcodeType').value;
+            let value = document.getElementById('barcodeValue').value.trim();
+            const label = document.getElementById('barcodeLabel').value.trim();
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const widthCm = parseFloat(document.getElementById('width').value);
+            const heightCm = parseFloat(document.getElementById('height').value);
+            const columns = parseInt(document.getElementById('columns').value);
+            
+            // If no barcode value provided, use the SKU
+            if (!value && label) {
+                value = label.split(' - ')[0]; // Remove product name if present
+            }
+            
+            if (!value) {
+                alert('Please enter a barcode value or SKU');
+                return;
+            }
             
             // Calculate width based on columns and page width
-            const pageWidthPx = 210 * 3.78; // 210mm in pixels
+            const pageWidthPx = 210 * 3.78; // 210mm in pixels (1mm = 3.78px)
             const paddingPx = 15 * 3.78 * 2; // 15mm padding on both sides
             const availableWidth = pageWidthPx - paddingPx;
             const containerWidth = (availableWidth / columns) - 2; // 2px for gap
-            container.style.width = (containerWidth / 37.8) + 'cm'; // Convert back to cm
             
-            if (label) {
-                const labelElement = document.createElement('div');
-                labelElement.className = 'barcode-label';
-                labelElement.textContent = label;
-                container.appendChild(labelElement);
+            // Generate multiple barcodes based on quantity
+            for (let i = 0; i < quantity; i++) {
+                const container = document.createElement('div');
+                container.className = 'barcode-container';
+                container.style.width = (containerWidth / 3.78) + 'mm'; // Convert to mm
+                container.style.height = heightCm + 'cm';
+                
+                if (label) {
+                    const labelElement = document.createElement('div');
+                    labelElement.className = 'barcode-label';
+                    labelElement.textContent = label;
+                    container.appendChild(labelElement);
+                }
+                
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.style.width = '100%';
+                svg.style.height = 'calc(100% - 20px)'; // Leave space for label
+                container.appendChild(svg);
+                
+                try {
+                    JsBarcode(svg, value, {
+                        format: type,
+                        lineColor: '#000000',
+                        width: 1,
+                        height: heightCm * 10, // Adjust height based on cm input
+                        displayValue: true,
+                        fontSize: 10,
+                        margin: 2
+                    });
+                    
+                    document.getElementById('a4Page').appendChild(container);
+                    
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                    console.error(error);
+                    break;
+                }
             }
             
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.style.width = '100%';
-            container.appendChild(svg);
-            
-            try {
-                JsBarcode(svg, value, {
-                    format: type,
-                    lineColor: '#000000',
-                    width: 1, // Base unit (will scale with SVG width)
-                    height: 2,
-                    displayValue: true,
-                    fontSize: 10, // Reduced from 12
-                    margin: 2 // Reduced from 5
-                });
-                
-                document.getElementById('a4Page').appendChild(container);
-                document.getElementById('barcodeValue').value = '';
-                document.getElementById('barcodeLabel').value = '';
-                
-            } catch (error) {
-                alert('Error: ' + error.message);
-                console.error(error);
-            }
+            // Clear inputs after generation
+            document.getElementById('barcodeValue').value = '';
+            document.getElementById('barcodeLabel').value = '';
         }
         
         function clearBarcodes() {
