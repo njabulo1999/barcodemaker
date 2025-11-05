@@ -1,51 +1,220 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pandora Barcode Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
+        :root {
+            --primary-color: #d5006d;
+            --primary-light: #ff5ca0;
+            --primary-dark: #9c0042;
+            --secondary-color: #f8e6ff;
+            --accent-color: #ff9800;
+            --success-color: #4caf50;
+            --danger-color: #f44336;
+            --info-color: #2196f3;
+            --text-color: #333;
+            --light-gray: #f5f5f5;
+            --border-color: #ddd;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background: #f8afff;
-        }
-        .controls {
-            background: rgb(255, 198, 250);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #f8afff 100%);
             padding: 20px;
-            border-radius: 8px;
-            max-width: 800px;
-            margin: 0 auto 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-height: 100vh;
         }
-        .control-group {
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary-color);
+        }
+        
+        .form-row {
+            display: flex;
+            flex-direction: column;
             margin-bottom: 15px;
         }
+        
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
         }
+        
         input, select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(213, 0, 109, 0.2);
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
         button {
-            padding: 10px 15px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .generate-btn { background: #60af4c; color: white; }
-        .print-btn { background: #2196F3; color: white; }
-        .clear-btn { background: #f44336; color: white; }
-        .fetch-btn { background: #FF9800; color: white; }
+        
+        button i {
+            font-size: 1.1rem;
+        }
+        
+        .generate-btn { 
+            background: var(--success-color); 
+            color: white; 
+        }
+        
+        .generate-btn:hover { 
+            background: #3d8b40; 
+        }
+        
+        .fetch-btn { 
+            background: var(--accent-color); 
+            color: white; 
+        }
+        
+        .fetch-btn:hover { 
+            background: #e68900; 
+        }
+        
+        .print-btn { 
+            background: var(--info-color); 
+            color: white; 
+        }
+        
+        .print-btn:hover { 
+            background: #0b7dda; 
+        }
+        
+        .clear-btn { 
+            background: var(--danger-color); 
+            color: white; 
+        }
+        
+        .clear-btn:hover { 
+            background: #d32f2f; 
+        }
+        
+        .preview-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .preview-controls button {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            min-width: auto;
+        }
+        
+        .barcode-count {
+            background: var(--light-gray);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
         
         /* A4 Page */
         .a4-page {
@@ -54,26 +223,85 @@
             margin: 0 auto;
             padding: 15mm;
             background: white;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
-            gap: 2px;
+            gap: 5px;
+            position: relative;
         }
+        
         .barcode-container {
             text-align: center;
             page-break-inside: avoid;
             margin: 0;
-            padding: 2px;
+            padding: 5px;
             box-sizing: border-box;
+            border: 1px dashed #eee;
+            transition: all 0.2s;
         }
+        
+        .barcode-container:hover {
+            border-color: var(--primary-light);
+            background-color: rgba(255, 92, 160, 0.05);
+        }
+        
         .barcode-label {
-            margin-bottom: 2px;
+            margin-bottom: 5px;
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 0.85em;
+            word-break: break-word;
         }
+        
         svg {
             display: block;
+            margin: 0 auto;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+            color: #ccc;
+        }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .status-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
         }
         
         @media print {
@@ -92,91 +320,181 @@
                 margin: 0;
                 padding: 0;
             }
-            .controls {
+            .controls, .preview-section, header, footer {
                 display: none;
             }
         }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="controls">
-        <h2>Pandora Barcode Generator</h2>
+    <div class="container">
+        <header>
+            <h1>Pandora Barcode Generator</h1>
+            <p class="subtitle">Create and print professional barcode labels for your products</p>
+        </header>
         
-        <div class="control-group">
-            <div>
-                <label for="barcodeType">Barcode Type</label>
-                <select id="barcodeType">
-                    <option value="CODE128">CODE128</option>
-                    <option value="EAN13">EAN-13</option>
-                    <option value="UPC">UPC-A</option>
-                </select>
+        <div class="main-content">
+            <div class="controls">
+                <div class="status-message" id="statusMessage"></div>
+                
+                <div class="control-group">
+                    <h3>Barcode Settings</h3>
+                    <div class="form-row">
+                        <label for="barcodeType">Barcode Type</label>
+                        <select id="barcodeType">
+                            <option value="CODE128">CODE128</option>
+                            <option value="EAN13">EAN-13</option>
+                            <option value="UPC">UPC-A</option>
+                            <option value="CODE39">CODE39</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="barcodeValue">Barcode Value</label>
+                        <input type="text" id="barcodeValue" placeholder="Enter value or will use SKU if empty">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="barcodeLabel">SKU / Product Name</label>
+                        <input type="text" id="barcodeLabel" placeholder="Enter SKU or product name">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Layout Settings</h3>
+                    <div class="form-row">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" id="quantity" value="1" min="1" max="200">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="width">Width (cm)</label>
+                        <input type="number" id="width" value="5" min="1" max="20" step="0.1">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="height">Height (cm)</label>
+                        <input type="number" id="height" value="2" min="1" max="10" step="0.1">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label for="columns">Columns per page</label>
+                        <input type="number" id="columns" value="4" min="1" max="10">
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="generate-btn" onclick="generateBarcode()">
+                        <i class="fas fa-barcode"></i> Generate Barcode
+                    </button>
+                    <button class="fetch-btn" onclick="fetchBarcodeFromDatabase()">
+                        <i class="fas fa-database"></i> Fetch from Database
+                    </button>
+                    <button class="print-btn" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print A4 Page
+                    </button>
+                    <button class="clear-btn" onclick="clearBarcodes()">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
             </div>
-            <div>
-                <label for="barcodeValue">Barcode Value</label>
-                <input type="text" id="barcodeValue" placeholder="Enter value or will use SKU if empty">
+            
+            <div class="preview-section">
+                <div class="preview-header">
+                    <h3>Preview</h3>
+                    <div class="preview-controls">
+                        <span class="barcode-count" id="barcodeCount">0 barcodes</span>
+                        <button class="clear-btn" onclick="clearBarcodes()" style="padding: 6px 12px;">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="a4-page" id="a4Page">
+                    <div class="empty-state" id="emptyState">
+                        <i class="fas fa-barcode"></i>
+                        <p>No barcodes generated yet</p>
+                        <p>Configure settings and click "Generate Barcode" to get started</p>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div class="control-group">
-            <div>
-                <label for="barcodeLabel">SKU</label>
-                <input type="text" id="barcodeLabel" placeholder="Enter SKU">
-            </div>
-            <div>
-                <label for="quantity">Quantity</label>
-                <input type="number" id="quantity" value="1" min="1" max="100">
-            </div>
-        </div>
-        
-        <div class="control-group">
-            <div>
-                <label for="width">Width (cm)</label>
-                <input type="number" id="width" value="5" min="1" max="20" step="0.1">
-            </div>
-            <div>
-                <label for="height">Height (cm)</label>
-                <input type="number" id="height" value="2" min="1" max="10" step="0.1">
-            </div>
-        </div>
-        
-        <div class="control-group">
-            <div>
-                <label for="columns">Columns per page</label>
-                <input type="number" id="columns" value="4" min="1" max="10">
-            </div>
-        </div>
-        
-        <button class="generate-btn" onclick="generateBarcode()">Generate Barcode</button>
-        <button class="fetch-btn" onclick="fetchBarcodeFromDatabase()">Fetch from Database</button>
-        <button class="print-btn" onclick="window.print()">Print A4 Page</button>
-        <button class="clear-btn" onclick="clearBarcodes()">Clear All</button>
-    </div>
-    
-    <div class="a4-page" id="a4Page">
-        <!-- Barcodes will appear here -->
+        <footer>
+            <p>Pandora Barcode Generator &copy; 2023 | For internal use only</p>
+        </footer>
     </div>
 
     <script>
         // Mock database - replace with actual database connection
         const mockDatabase = {
-            "12345": { barcode: "123456789012", name: "Product A" },
-            "67890": { barcode: "987654321098", name: "Product B" },
-            "PANDORA-001": { barcode: "5901234567890", name: "Silver Bracelet" },
-            "PANDORA-002": { barcode: "5909876543210", name: "Gold Charm" }
+            "12345": { barcode: "123456789012", name: "Silver Charm Bracelet" },
+            "67890": { barcode: "987654321098", name: "Rose Gold Ring" },
+            "PANDORA-001": { barcode: "5901234567890", name: "Silver Bracelet with Hearts" },
+            "PANDORA-002": { barcode: "5909876543210", name: "Gold Charm with Crystals" },
+            "PANDORA-003": { barcode: "5901122334455", name: "Necklace with Pearl" }
         };
+
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = 'status-message';
+            
+            if (type === 'success') {
+                statusElement.classList.add('status-success');
+            } else if (type === 'error') {
+                statusElement.classList.add('status-error');
+            } else if (type === 'info') {
+                statusElement.classList.add('status-info');
+            }
+            
+            statusElement.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateBarcodeCount() {
+            const barcodeContainers = document.querySelectorAll('.barcode-container');
+            const count = barcodeContainers.length;
+            document.getElementById('barcodeCount').textContent = `${count} barcode${count !== 1 ? 's' : ''}`;
+            
+            // Show/hide empty state
+            const emptyState = document.getElementById('emptyState');
+            if (count > 0) {
+                emptyState.style.display = 'none';
+            } else {
+                emptyState.style.display = 'block';
+            }
+        }
 
         function fetchBarcodeFromDatabase() {
             const sku = document.getElementById('barcodeLabel').value.trim();
             
             if (!sku) {
-                alert('Please enter a SKU to fetch from database');
+                showStatus('Please enter a SKU to fetch from database', 'error');
                 return;
             }
             
             // Simulate database fetch with timeout
             document.getElementById('barcodeLabel').disabled = true;
-            document.querySelector('.fetch-btn').disabled = true;
-            document.querySelector('.fetch-btn').textContent = 'Fetching...';
+            const fetchBtn = document.querySelector('.fetch-btn');
+            fetchBtn.disabled = true;
+            fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
             
             setTimeout(() => {
                 // In a real implementation, you would make an AJAX call to your server here
@@ -184,16 +502,17 @@
                 
                 if (product) {
                     document.getElementById('barcodeValue').value = product.barcode;
-                    document.getElementById('barcodeLabel').value = sku + " - " + product.name;
+                    document.getElementById('barcodeLabel').value = `${sku} - ${product.name}`;
+                    showStatus(`Product "${product.name}" fetched successfully`, 'success');
                     generateBarcode();
                 } else {
-                    alert('SKU not found in database');
+                    showStatus('SKU not found in database', 'error');
                 }
                 
                 document.getElementById('barcodeLabel').disabled = false;
-                document.querySelector('.fetch-btn').disabled = false;
-                document.querySelector('.fetch-btn').textContent = 'Fetch from Database';
-            }, 500);
+                fetchBtn.disabled = false;
+                fetchBtn.innerHTML = '<i class="fas fa-database"></i> Fetch from Database';
+            }, 800);
         }
 
         function generateBarcode() {
@@ -211,7 +530,13 @@
             }
             
             if (!value) {
-                alert('Please enter a barcode value or SKU');
+                showStatus('Please enter a barcode value or SKU', 'error');
+                return;
+            }
+            
+            // Validate barcode value based on type
+            if (!validateBarcodeValue(type, value)) {
+                showStatus(`Invalid barcode value for ${type} format`, 'error');
                 return;
             }
             
@@ -222,6 +547,7 @@
             const containerWidth = (availableWidth / columns) - 2; // 2px for gap
             
             // Generate multiple barcodes based on quantity
+            let generatedCount = 0;
             for (let i = 0; i < quantity; i++) {
                 const container = document.createElement('div');
                 container.className = 'barcode-container';
@@ -252,24 +578,76 @@
                     });
                     
                     document.getElementById('a4Page').appendChild(container);
+                    generatedCount++;
                     
                 } catch (error) {
-                    alert('Error: ' + error.message);
+                    showStatus('Error generating barcode: ' + error.message, 'error');
                     console.error(error);
                     break;
                 }
             }
             
-            // Clear inputs after generation
-            document.getElementById('barcodeValue').value = '';
-            document.getElementById('barcodeLabel').value = '';
+            // Update UI
+            updateBarcodeCount();
+            
+            // Show success message
+            if (generatedCount > 0) {
+                showStatus(`Successfully generated ${generatedCount} barcode${generatedCount !== 1 ? 's' : ''}`, 'success');
+            }
+            
+            // Clear inputs after generation if successful
+            if (generatedCount === quantity) {
+                document.getElementById('barcodeValue').value = '';
+                document.getElementById('barcodeLabel').value = '';
+            }
+        }
+        
+        function validateBarcodeValue(type, value) {
+            // Basic validation for different barcode types
+            switch(type) {
+                case 'EAN13':
+                    return /^\d{13}$/.test(value);
+                case 'UPC':
+                    return /^\d{12}$/.test(value);
+                case 'CODE39':
+                    return /^[A-Z0-9\-\.\ \$\/\+\%]+$/i.test(value);
+                case 'CODE128':
+                    // CODE128 is more flexible, but we'll check for at least one character
+                    return value.length > 0;
+                default:
+                    return true;
+            }
         }
         
         function clearBarcodes() {
-            if (confirm('Clear all barcodes?')) {
+            const barcodeCount = document.querySelectorAll('.barcode-container').length;
+            if (barcodeCount === 0) {
+                showStatus('No barcodes to clear', 'info');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to clear all ${barcodeCount} barcodes?`)) {
                 document.getElementById('a4Page').innerHTML = '';
+                const emptyState = document.getElementById('emptyState');
+                emptyState.style.display = 'block';
+                updateBarcodeCount();
+                showStatus('All barcodes cleared', 'info');
             }
         }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBarcodeCount();
+            
+            // Add example data on double-click of SKU field
+            document.getElementById('barcodeLabel').addEventListener('dblclick', function() {
+                if (!this.value) {
+                    this.value = 'PANDORA-001';
+                    document.getElementById('barcodeValue').value = '5901234567890';
+                }
+            });
+        });
     </script>
 </body>
 </html>
+
