@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pandora Barcode Generator</title>
+    <title>Pandora Barcode Generator Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         :root {
             --primary-color: #d5006d;
@@ -15,10 +18,12 @@
             --success-color: #4caf50;
             --danger-color: #f44336;
             --info-color: #2196f3;
+            --warning-color: #ffc107;
             --text-color: #333;
             --light-gray: #f5f5f5;
             --border-color: #ddd;
             --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
         }
         
         * {
@@ -37,7 +42,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
@@ -48,6 +53,7 @@
             background: white;
             border-radius: 10px;
             box-shadow: var(--shadow);
+            position: relative;
         }
         
         h1 {
@@ -59,6 +65,18 @@
         .subtitle {
             color: #666;
             font-size: 1.1rem;
+        }
+        
+        .pro-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, var(--accent-color), #ff5722);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
         }
         
         .main-content {
@@ -73,6 +91,42 @@
             }
         }
         
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .tab:hover:not(.active) {
+            color: var(--primary-light);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
         .controls {
             background: white;
             padding: 25px;
@@ -82,7 +136,7 @@
         }
         
         .control-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .control-group h3 {
@@ -90,12 +144,30 @@
             padding-bottom: 8px;
             border-bottom: 1px solid var(--border-color);
             color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group h3 i {
+            color: var(--primary-light);
         }
         
         .form-row {
             display: flex;
             flex-direction: column;
             margin-bottom: 15px;
+        }
+        
+        .form-row.inline {
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-row.inline label {
+            margin-bottom: 0;
+            min-width: 120px;
         }
         
         label {
@@ -105,7 +177,24 @@
             color: #555;
         }
         
-        input, select {
+        .input-with-icon {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-with-icon input {
+            padding-left: 40px;
+            flex: 1;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            color: #999;
+        }
+        
+        input, select, textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--border-color);
@@ -114,10 +203,43 @@
             transition: border-color 0.3s, box-shadow 0.3s;
         }
         
-        input:focus, select:focus {
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: monospace;
+        }
+        
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 2px rgba(213, 0, 109, 0.2);
+        }
+        
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .color-picker input[type="color"] {
+            width: 50px;
+            height: 40px;
+            padding: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group, .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item, .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .button-group {
@@ -146,40 +268,58 @@
             font-size: 1.1rem;
         }
         
-        .generate-btn { 
+        .btn-primary { 
+            background: var(--primary-color); 
+            color: white; 
+        }
+        
+        .btn-primary:hover { 
+            background: var(--primary-dark); 
+        }
+        
+        .btn-success { 
             background: var(--success-color); 
             color: white; 
         }
         
-        .generate-btn:hover { 
+        .btn-success:hover { 
             background: #3d8b40; 
         }
         
-        .fetch-btn { 
-            background: var(--accent-color); 
+        .btn-warning { 
+            background: var(--warning-color); 
             color: white; 
         }
         
-        .fetch-btn:hover { 
-            background: #e68900; 
+        .btn-warning:hover { 
+            background: #e6ac00; 
         }
         
-        .print-btn { 
+        .btn-info { 
             background: var(--info-color); 
             color: white; 
         }
         
-        .print-btn:hover { 
+        .btn-info:hover { 
             background: #0b7dda; 
         }
         
-        .clear-btn { 
+        .btn-danger { 
             background: var(--danger-color); 
             color: white; 
         }
         
-        .clear-btn:hover { 
+        .btn-danger:hover { 
             background: #d32f2f; 
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
         }
         
         .preview-section {
@@ -187,6 +327,8 @@
             padding: 25px;
             border-radius: 10px;
             box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
         }
         
         .preview-header {
@@ -201,6 +343,7 @@
         .preview-controls {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         
         .preview-controls button {
@@ -229,6 +372,9 @@
             align-content: flex-start;
             gap: 5px;
             position: relative;
+            overflow: auto;
+            max-height: 600px;
+            border: 1px solid var(--border-color);
         }
         
         .barcode-container {
@@ -239,6 +385,10 @@
             box-sizing: border-box;
             border: 1px dashed #eee;
             transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         
         .barcode-container:hover {
@@ -251,17 +401,26 @@
             font-weight: bold;
             font-size: 0.85em;
             word-break: break-word;
+            max-width: 100%;
+        }
+        
+        .barcode-sublabel {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 2px;
         }
         
         svg {
             display: block;
             margin: 0 auto;
+            max-width: 100%;
         }
         
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #888;
+            width: 100%;
         }
         
         .empty-state i {
@@ -296,12 +455,142 @@
             border-left: 4px solid var(--info-color);
         }
         
+        .status-warning {
+            background: #fff8e1;
+            color: #ff8f00;
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        /* Batch Processing */
+        .batch-input {
+            position: relative;
+        }
+        
+        .batch-example {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .batch-example code {
+            background: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        /* Templates */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .template-card {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .template-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .template-card.selected {
+            border-color: var(--primary-color);
+            background-color: rgba(213, 0, 109, 0.05);
+        }
+        
+        .template-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--primary-light);
+        }
+        
+        /* Database Panel */
+        .database-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .product-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .product-item:hover {
+            background-color: var(--light-gray);
+        }
+        
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        
+        .product-sku {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .product-name {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* History Panel */
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-time {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        /* Settings Panel */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
         footer {
             text-align: center;
             margin-top: 30px;
             padding: 20px;
             color: #666;
             font-size: 0.9rem;
+        }
+        
+        .advanced-options {
+            background: var(--light-gray);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 4px solid var(--info-color);
         }
         
         @media print {
@@ -334,6 +623,78 @@
             button {
                 width: 100%;
             }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                flex: 1;
+                min-width: 120px;
+                text-align: center;
+            }
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .modal-close:hover {
+            color: var(--primary-color);
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -341,73 +702,330 @@
 <body>
     <div class="container">
         <header>
-            <h1>Pandora Barcode Generator</h1>
-            <p class="subtitle">Create and print professional barcode labels for your products</p>
+            <h1>Pandora Barcode Generator Pro</h1>
+            <p class="subtitle">Advanced barcode generation with batch processing, templates, and export options</p>
+            <div class="pro-badge">PRO VERSION</div>
         </header>
         
         <div class="main-content">
             <div class="controls">
+                <div class="tabs">
+                    <button class="tab active" data-tab="basic"><i class="fas fa-barcode"></i> Basic</button>
+                    <button class="tab" data-tab="batch"><i class="fas fa-list"></i> Batch</button>
+                    <button class="tab" data-tab="database"><i class="fas fa-database"></i> Database</button>
+                    <button class="tab" data-tab="templates"><i class="fas fa-palette"></i> Templates</button>
+                    <button class="tab" data-tab="settings"><i class="fas fa-cog"></i> Settings</button>
+                </div>
+                
                 <div class="status-message" id="statusMessage"></div>
                 
-                <div class="control-group">
-                    <h3>Barcode Settings</h3>
-                    <div class="form-row">
-                        <label for="barcodeType">Barcode Type</label>
-                        <select id="barcodeType">
-                            <option value="CODE128">CODE128</option>
-                            <option value="EAN13">EAN-13</option>
-                            <option value="UPC">UPC-A</option>
-                            <option value="CODE39">CODE39</option>
-                        </select>
+                <!-- Basic Tab -->
+                <div id="basic" class="tab-content active">
+                    <div class="control-group">
+                        <h3><i class="fas fa-cogs"></i> Barcode Settings</h3>
+                        <div class="form-row">
+                            <label for="barcodeType">Barcode Type</label>
+                            <select id="barcodeType">
+                                <option value="CODE128">CODE128</option>
+                                <option value="EAN13">EAN-13</option>
+                                <option value="UPC">UPC-A</option>
+                                <option value="CODE39">CODE39</option>
+                                <option value="ITF14">ITF-14</option>
+                                <option value="MSI">MSI</option>
+                                <option value="PHARMACODE">Pharmacode</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label for="barcodeValue">Barcode Value</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-hashtag input-icon"></i>
+                                <input type="text" id="barcodeValue" placeholder="Enter value or will use SKU if empty">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label for="barcodeLabel">SKU / Product Name</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-tag input-icon"></i>
+                                <input type="text" id="barcodeLabel" placeholder="Enter SKU or product name">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label for="barcodeDescription">Description (Optional)</label>
+                            <input type="text" id="barcodeDescription" placeholder="Additional info (size, color, etc.)">
+                        </div>
                     </div>
                     
-                    <div class="form-row">
-                        <label for="barcodeValue">Barcode Value</label>
-                        <input type="text" id="barcodeValue" placeholder="Enter value or will use SKU if empty">
+                    <div class="control-group">
+                        <h3><i class="fas fa-ruler-combined"></i> Layout Settings</h3>
+                        <div class="form-row inline">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" id="quantity" value="1" min="1" max="500">
+                        </div>
+                        
+                        <div class="form-row inline">
+                            <label for="columns">Columns</label>
+                            <input type="number" id="columns" value="4" min="1" max="10">
+                        </div>
+                        
+                        <div class="form-row inline">
+                            <label for="width">Width (mm)</label>
+                            <input type="number" id="width" value="50" min="10" max="200" step="1">
+                        </div>
+                        
+                        <div class="form-row inline">
+                            <label for="height">Height (mm)</label>
+                            <input type="number" id="height" value="25" min="10" max="100" step="1">
+                        </div>
+                        
+                        <div class="advanced-options">
+                            <div class="form-row inline">
+                                <label for="fontSize">Font Size</label>
+                                <input type="number" id="fontSize" value="10" min="8" max="20" step="1">
+                            </div>
+                            
+                            <div class="form-row inline">
+                                <label for="margin">Margin</label>
+                                <input type="number" id="margin" value="2" min="0" max="10" step="0.5">
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="form-row">
-                        <label for="barcodeLabel">SKU / Product Name</label>
-                        <input type="text" id="barcodeLabel" placeholder="Enter SKU or product name">
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="generateBarcode()">
+                            <i class="fas fa-barcode"></i> Generate
+                        </button>
+                        <button class="btn-info" onclick="previewBarcode()">
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
                     </div>
                 </div>
                 
-                <div class="control-group">
-                    <h3>Layout Settings</h3>
-                    <div class="form-row">
-                        <label for="quantity">Quantity</label>
-                        <input type="number" id="quantity" value="1" min="1" max="200">
+                <!-- Batch Tab -->
+                <div id="batch" class="tab-content">
+                    <div class="control-group">
+                        <h3><i class="fas fa-stream"></i> Batch Processing</h3>
+                        <div class="form-row">
+                            <label for="batchData">Batch Data (CSV or JSON)</label>
+                            <textarea id="batchData" placeholder="Enter data in CSV or JSON format. Example: 
+sku,value,name,description
+PANDORA-001,5901234567890,Silver Bracelet,Size M
+PANDORA-002,5909876543210,Gold Ring,Size 7"></textarea>
+                            <div class="batch-example">
+                                Supports CSV (comma separated) or JSON format. 
+                                <a href="javascript:void(0);" onclick="loadSampleData()">Load sample data</a>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label for="batchTemplate">Template for Batch</label>
+                            <select id="batchTemplate">
+                                <option value="default">Default Template</option>
+                                <option value="compact">Compact Labels</option>
+                                <option value="detailed">Detailed Labels</option>
+                                <option value="price">With Price Tag</option>
+                            </select>
+                        </div>
                     </div>
                     
-                    <div class="form-row">
-                        <label for="width">Width (cm)</label>
-                        <input type="number" id="width" value="5" min="1" max="20" step="0.1">
-                    </div>
-                    
-                    <div class="form-row">
-                        <label for="height">Height (cm)</label>
-                        <input type="number" id="height" value="2" min="1" max="10" step="0.1">
-                    </div>
-                    
-                    <div class="form-row">
-                        <label for="columns">Columns per page</label>
-                        <input type="number" id="columns" value="4" min="1" max="10">
+                    <div class="button-group">
+                        <button class="btn-success" onclick="processBatch()">
+                            <i class="fas fa-play"></i> Process Batch
+                        </button>
+                        <button class="btn-info" onclick="downloadTemplate()">
+                            <i class="fas fa-download"></i> Download CSV Template
+                        </button>
+                        <button class="btn-secondary" onclick="clearBatch()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
                     </div>
                 </div>
                 
-                <div class="button-group">
-                    <button class="generate-btn" onclick="generateBarcode()">
-                        <i class="fas fa-barcode"></i> Generate Barcode
-                    </button>
-                    <button class="fetch-btn" onclick="fetchBarcodeFromDatabase()">
-                        <i class="fas fa-database"></i> Fetch from Database
-                    </button>
-                    <button class="print-btn" onclick="window.print()">
-                        <i class="fas fa-print"></i> Print A4 Page
-                    </button>
-                    <button class="clear-btn" onclick="clearBarcodes()">
-                        <i class="fas fa-trash"></i> Clear All
-                    </button>
+                <!-- Database Tab -->
+                <div id="database" class="tab-content">
+                    <div class="control-group">
+                        <h3><i class="fas fa-search"></i> Database Search</h3>
+                        <div class="form-row">
+                            <label for="searchQuery">Search Products</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-search input-icon"></i>
+                                <input type="text" id="searchQuery" placeholder="Search by SKU, name, or description">
+                            </div>
+                        </div>
+                        
+                        <div class="database-results" id="databaseResults">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-history"></i> Recent History</h3>
+                        <div class="history-list" id="historyList">
+                            <!-- History will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn-info" onclick="searchDatabase()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button class="btn-primary" onclick="loadSelectedFromDatabase()">
+                            <i class="fas fa-plus"></i> Add Selected
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Templates Tab -->
+                <div id="templates" class="tab-content">
+                    <div class="control-group">
+                        <h3><i class="fas fa-object-group"></i> Label Templates</h3>
+                        <div class="template-grid">
+                            <div class="template-card" data-template="default" onclick="selectTemplate(this)">
+                                <div class="template-icon"><i class="fas fa-barcode"></i></div>
+                                <div>Default</div>
+                                <small>Standard barcode label</small>
+                            </div>
+                            <div class="template-card" data-template="compact" onclick="selectTemplate(this)">
+                                <div class="template-icon"><i class="fas fa-compress-alt"></i></div>
+                                <div>Compact</div>
+                                <small>Small labels, more per page</small>
+                            </div>
+                            <div class="template-card" data-template="detailed" onclick="selectTemplate(this)">
+                                <div class="template-icon"><i class="fas fa-info-circle"></i></div>
+                                <div>Detailed</div>
+                                <small>With description and price</small>
+                            </div>
+                            <div class="template-card" data-template="price" onclick="selectTemplate(this)">
+                                <div class="template-icon"><i class="fas fa-tag"></i></div>
+                                <div>Price Tag</div>
+                                <small>Barcode with pricing info</small>
+                            </div>
+                            <div class="template-card" data-template="custom" onclick="selectTemplate(this)">
+                                <div class="template-icon"><i class="fas fa-palette"></i></div>
+                                <div>Custom</div>
+                                <small>Configure your own</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-paint-brush"></i> Customization</h3>
+                        <div class="form-row inline">
+                            <label>Barcode Color</label>
+                            <div class="color-picker">
+                                <input type="color" id="barcodeColor" value="#000000">
+                                <span id="colorValue">#000000</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row inline">
+                            <label>Background Color</label>
+                            <div class="color-picker">
+                                <input type="color" id="backgroundColor" value="#ffffff">
+                                <span id="bgColorValue">#ffffff</span>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="showText" checked>
+                                <label for="showText">Show barcode value</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="showBorder">
+                                <label for="showBorder">Show border</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="showLogo" checked>
+                                <label for="showLogo">Show Pandora logo</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="applyTemplate()">
+                            <i class="fas fa-check"></i> Apply Template
+                        </button>
+                        <button class="btn-info" onclick="saveTemplate()">
+                            <i class="fas fa-save"></i> Save as New
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Settings Tab -->
+                <div id="settings" class="tab-content">
+                    <div class="control-group">
+                        <h3><i class="fas fa-print"></i> Print Settings</h3>
+                        <div class="settings-grid">
+                            <div class="form-row">
+                                <label for="paperSize">Paper Size</label>
+                                <select id="paperSize">
+                                    <option value="A4">A4 (210 × 297 mm)</option>
+                                    <option value="Letter">Letter (8.5 × 11 in)</option>
+                                    <option value="A5">A5 (148 × 210 mm)</option>
+                                    <option value="A6">A6 (105 × 148 mm)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="orientation">Orientation</label>
+                                <select id="orientation">
+                                    <option value="portrait">Portrait</option>
+                                    <option value="landscape">Landscape</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="printQuality">Print Quality</label>
+                                <select id="printQuality">
+                                    <option value="high">High (300 DPI)</option>
+                                    <option value="medium">Medium (150 DPI)</option>
+                                    <option value="low">Low (72 DPI)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="margins">Margins (mm)</label>
+                                <input type="number" id="margins" value="15" min="5" max="50">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-file-export"></i> Export Settings</h3>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="exportPDF" name="exportFormat" value="pdf" checked>
+                                <label for="exportPDF">PDF Document</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="exportPNG" name="exportFormat" value="png">
+                                <label for="exportPNG">PNG Images</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="exportSVG" name="exportFormat" value="svg">
+                                <label for="exportSVG">SVG Vector</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="exportCSV" name="exportFormat" value="csv">
+                                <label for="exportCSV">CSV Data</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn-success" onclick="exportBarcodes()">
+                            <i class="fas fa-file-export"></i> Export All
+                        </button>
+                        <button class="btn-info" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                        <button class="btn-warning" onclick="resetSettings()">
+                            <i class="fas fa-undo"></i> Reset Defaults
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -416,8 +1034,17 @@
                     <h3>Preview</h3>
                     <div class="preview-controls">
                         <span class="barcode-count" id="barcodeCount">0 barcodes</span>
-                        <button class="clear-btn" onclick="clearBarcodes()" style="padding: 6px 12px;">
-                            <i class="fas fa-trash"></i> Clear
+                        <button class="btn-info" onclick="zoomIn()">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button class="btn-info" onclick="zoomOut()">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button class="btn-warning" onclick="window.print()">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                        <button class="btn-danger" onclick="clearBarcodes()">
+                            <i class="fas fa-trash"></i> Clear All
                         </button>
                     </div>
                 </div>
@@ -426,40 +1053,184 @@
                     <div class="empty-state" id="emptyState">
                         <i class="fas fa-barcode"></i>
                         <p>No barcodes generated yet</p>
-                        <p>Configure settings and click "Generate Barcode" to get started</p>
+                        <p>Configure settings and click "Generate" to get started</p>
                     </div>
+                </div>
+                
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn-success" onclick="exportBarcodes()">
+                        <i class="fas fa-file-export"></i> Export
+                    </button>
+                    <button class="btn-info" onclick="shareBarcodes()">
+                        <i class="fas fa-share-alt"></i> Share
+                    </button>
+                    <button class="btn-warning" onclick="duplicateBarcodes()">
+                        <i class="fas fa-copy"></i> Duplicate
+                    </button>
+                    <button class="btn-secondary" onclick="showHelp()">
+                        <i class="fas fa-question-circle"></i> Help
+                    </button>
                 </div>
             </div>
         </div>
         
         <footer>
-            <p>Pandora Barcode Generator &copy; 2023 | For internal use only</p>
+            <p>Pandora Barcode Generator Pro &copy; 2023 | Version 2.0 | For internal use only</p>
+            <p style="font-size: 0.8rem; margin-top: 5px;">Last sync: <span id="lastSync">Just now</span> | Total barcodes generated: <span id="totalGenerated">0</span></p>
         </footer>
     </div>
 
+    <!-- Help Modal -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Help & Documentation</h3>
+                <button class="modal-close" onclick="closeModal('helpModal')">&times;</button>
+            </div>
+            <div class="control-group">
+                <h4>Quick Start Guide</h4>
+                <ol>
+                    <li>Enter barcode value or SKU in the Basic tab</li>
+                    <li>Adjust layout settings as needed</li>
+                    <li>Click "Generate" to create barcodes</li>
+                    <li>Use "Print" to print or "Export" to save files</li>
+                </ol>
+                
+                <h4>Batch Processing</h4>
+                <p>Use CSV format for multiple products:</p>
+                <code>SKU,Barcode,Product Name,Description,Price</code>
+                
+                <h4>Keyboard Shortcuts</h4>
+                <ul>
+                    <li><kbd>Ctrl+G</kbd> - Generate barcode</li>
+                    <li><kbd>Ctrl+P</kbd> - Print</li>
+                    <li><kbd>Ctrl+E</kbd> - Export</li>
+                    <li><kbd>Ctrl+C</kbd> - Clear all</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Mock database - replace with actual database connection
+        // Enhanced Database Simulation
         const mockDatabase = {
-            "12345": { barcode: "123456789012", name: "Silver Charm Bracelet" },
-            "67890": { barcode: "987654321098", name: "Rose Gold Ring" },
-            "PANDORA-001": { barcode: "5901234567890", name: "Silver Bracelet with Hearts" },
-            "PANDORA-002": { barcode: "5909876543210", name: "Gold Charm with Crystals" },
-            "PANDORA-003": { barcode: "5901122334455", name: "Necklace with Pearl" }
+            "12345": { barcode: "123456789012", name: "Silver Charm Bracelet", description: "Silver bracelet with heart charm", category: "Bracelets", price: 129.99 },
+            "67890": { barcode: "987654321098", name: "Rose Gold Ring", description: "Rose gold ring with crystal", category: "Rings", price: 89.99 },
+            "PANDORA-001": { barcode: "5901234567890", name: "Silver Bracelet with Hearts", description: "Adjustable silver bracelet", category: "Bracelets", price: 149.99 },
+            "PANDORA-002": { barcode: "5909876543210", name: "Gold Charm with Crystals", description: "14k gold charm", category: "Charms", price: 79.99 },
+            "PANDORA-003": { barcode: "5901122334455", name: "Necklace with Pearl", description: "Silver necklace with freshwater pearl", category: "Necklaces", price: 199.99 },
+            "PANDORA-004": { barcode: "5902233445566", name: "Earrings Set", description: "Silver earrings with cubic zirconia", category: "Earrings", price: 59.99 },
+            "PANDORA-005": { barcode: "5903344556677", name: "Anklet", description: "Delicate silver anklet", category: "Anklets", price: 49.99 }
         };
 
-        function showStatus(message, type) {
+        // Application State
+        const appState = {
+            totalGenerated: 0,
+            currentBarcodes: [],
+            selectedTemplate: 'default',
+            zoomLevel: 1,
+            history: [],
+            settings: loadSettings(),
+            selectedProducts: new Set()
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupEventListeners();
+            loadHistory();
+            updateTotalGenerated();
+        });
+
+        function initializeApp() {
+            // Set up color pickers
+            document.getElementById('barcodeColor').addEventListener('input', function() {
+                document.getElementById('colorValue').textContent = this.value;
+            });
+            
+            document.getElementById('backgroundColor').addEventListener('input', function() {
+                document.getElementById('bgColorValue').textContent = this.value;
+            });
+            
+            // Load settings
+            applySettings();
+        }
+
+        function setupEventListeners() {
+            // Tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.dataset.tab;
+                    switchTab(tabId);
+                });
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey) {
+                    switch(e.key.toLowerCase()) {
+                        case 'g':
+                            e.preventDefault();
+                            generateBarcode();
+                            break;
+                        case 'p':
+                            e.preventDefault();
+                            window.print();
+                            break;
+                        case 'e':
+                            e.preventDefault();
+                            exportBarcodes();
+                            break;
+                        case 'c':
+                            e.preventDefault();
+                            if (confirm('Clear all barcodes?')) {
+                                clearBarcodes();
+                            }
+                            break;
+                    }
+                }
+            });
+            
+            // Auto-generate on Enter in barcode value field
+            document.getElementById('barcodeValue').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    generateBarcode();
+                }
+            });
+        }
+
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            
+            // Special actions for specific tabs
+            if (tabId === 'database') {
+                searchDatabase();
+            }
+        }
+
+        function showStatus(message, type = 'info') {
             const statusElement = document.getElementById('statusMessage');
             statusElement.textContent = message;
             statusElement.className = 'status-message';
             
-            if (type === 'success') {
-                statusElement.classList.add('status-success');
-            } else if (type === 'error') {
-                statusElement.classList.add('status-error');
-            } else if (type === 'info') {
-                statusElement.classList.add('status-info');
-            }
+            const typeClasses = {
+                'success': 'status-success',
+                'error': 'status-error',
+                'info': 'status-info',
+                'warning': 'status-warning'
+            };
             
+            statusElement.classList.add(typeClasses[type]);
             statusElement.style.display = 'block';
             
             // Auto-hide after 5 seconds
@@ -475,58 +1246,24 @@
             
             // Show/hide empty state
             const emptyState = document.getElementById('emptyState');
-            if (count > 0) {
-                emptyState.style.display = 'none';
-            } else {
-                emptyState.style.display = 'block';
-            }
-        }
-
-        function fetchBarcodeFromDatabase() {
-            const sku = document.getElementById('barcodeLabel').value.trim();
-            
-            if (!sku) {
-                showStatus('Please enter a SKU to fetch from database', 'error');
-                return;
-            }
-            
-            // Simulate database fetch with timeout
-            document.getElementById('barcodeLabel').disabled = true;
-            const fetchBtn = document.querySelector('.fetch-btn');
-            fetchBtn.disabled = true;
-            fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
-            
-            setTimeout(() => {
-                // In a real implementation, you would make an AJAX call to your server here
-                const product = mockDatabase[sku];
-                
-                if (product) {
-                    document.getElementById('barcodeValue').value = product.barcode;
-                    document.getElementById('barcodeLabel').value = `${sku} - ${product.name}`;
-                    showStatus(`Product "${product.name}" fetched successfully`, 'success');
-                    generateBarcode();
-                } else {
-                    showStatus('SKU not found in database', 'error');
-                }
-                
-                document.getElementById('barcodeLabel').disabled = false;
-                fetchBtn.disabled = false;
-                fetchBtn.innerHTML = '<i class="fas fa-database"></i> Fetch from Database';
-            }, 800);
+            emptyState.style.display = count > 0 ? 'none' : 'block';
         }
 
         function generateBarcode() {
             const type = document.getElementById('barcodeType').value;
             let value = document.getElementById('barcodeValue').value.trim();
             const label = document.getElementById('barcodeLabel').value.trim();
+            const description = document.getElementById('barcodeDescription').value.trim();
             const quantity = parseInt(document.getElementById('quantity').value);
-            const widthCm = parseFloat(document.getElementById('width').value);
-            const heightCm = parseFloat(document.getElementById('height').value);
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
             const columns = parseInt(document.getElementById('columns').value);
+            const fontSize = parseInt(document.getElementById('fontSize').value);
+            const margin = parseFloat(document.getElementById('margin').value);
             
             // If no barcode value provided, use the SKU
             if (!value && label) {
-                value = label.split(' - ')[0]; // Remove product name if present
+                value = label.split(' - ')[0];
             }
             
             if (!value) {
@@ -534,26 +1271,31 @@
                 return;
             }
             
-            // Validate barcode value based on type
+            // Validate barcode value
             if (!validateBarcodeValue(type, value)) {
                 showStatus(`Invalid barcode value for ${type} format`, 'error');
                 return;
             }
             
-            // Calculate width based on columns and page width
-            const pageWidthPx = 210 * 3.78; // 210mm in pixels (1mm = 3.78px)
-            const paddingPx = 15 * 3.78 * 2; // 15mm padding on both sides
-            const availableWidth = pageWidthPx - paddingPx;
-            const containerWidth = (availableWidth / columns) - 2; // 2px for gap
+            // Create barcode container if it doesn't exist
+            const a4Page = document.getElementById('a4Page');
             
-            // Generate multiple barcodes based on quantity
+            // Calculate container width based on columns
+            const pageWidth = 210; // mm
+            const padding = 15 * 2; // mm
+            const availableWidth = pageWidth - padding;
+            const containerWidth = (availableWidth / columns) - 2;
+            
+            // Generate multiple barcodes
             let generatedCount = 0;
             for (let i = 0; i < quantity; i++) {
                 const container = document.createElement('div');
                 container.className = 'barcode-container';
-                container.style.width = (containerWidth / 3.78) + 'mm'; // Convert to mm
-                container.style.height = heightCm + 'cm';
+                container.style.width = containerWidth + 'mm';
+                container.style.height = height + 'mm';
+                container.dataset.barcodeId = Date.now() + i;
                 
+                // Add label
                 if (label) {
                     const labelElement = document.createElement('div');
                     labelElement.className = 'barcode-label';
@@ -561,24 +1303,65 @@
                     container.appendChild(labelElement);
                 }
                 
+                // Add description if exists
+                if (description) {
+                    const descElement = document.createElement('div');
+                    descElement.className = 'barcode-sublabel';
+                    descElement.textContent = description;
+                    container.appendChild(descElement);
+                }
+                
+                // Create SVG for barcode
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.style.width = '100%';
-                svg.style.height = 'calc(100% - 20px)'; // Leave space for label
+                svg.style.height = `calc(100% - ${label ? 40 : 20}px)`;
                 container.appendChild(svg);
                 
                 try {
+                    // Get customization options
+                    const barcodeColor = document.getElementById('barcodeColor').value;
+                    const backgroundColor = document.getElementById('backgroundColor').value;
+                    const showText = document.getElementById('showText').checked;
+                    const showLogo = document.getElementById('showLogo').checked;
+                    
+                    // Generate barcode
                     JsBarcode(svg, value, {
                         format: type,
-                        lineColor: '#000000',
+                        lineColor: barcodeColor,
                         width: 1,
-                        height: heightCm * 10, // Adjust height based on cm input
-                        displayValue: true,
-                        fontSize: 10,
-                        margin: 2
+                        height: height * 0.6, // Adjust based on container height
+                        displayValue: showText,
+                        fontSize: fontSize,
+                        margin: margin,
+                        background: backgroundColor
                     });
                     
-                    document.getElementById('a4Page').appendChild(container);
+                    // Add logo if enabled
+                    if (showLogo) {
+                        const logo = document.createElement('div');
+                        logo.innerHTML = 'PANDORA';
+                        logo.style.fontSize = '8px';
+                        logo.style.color = '#d5006d';
+                        logo.style.fontWeight = 'bold';
+                        logo.style.position = 'absolute';
+                        logo.style.bottom = '5px';
+                        logo.style.right = '5px';
+                        container.appendChild(logo);
+                    }
+                    
+                    // Add to page
+                    a4Page.appendChild(container);
                     generatedCount++;
+                    
+                    // Store in app state
+                    appState.currentBarcodes.push({
+                        id: container.dataset.barcodeId,
+                        value: value,
+                        label: label,
+                        description: description,
+                        type: type,
+                        timestamp: new Date().toISOString()
+                    });
                     
                 } catch (error) {
                     showStatus('Error generating barcode: ' + error.message, 'error');
@@ -587,38 +1370,476 @@
                 }
             }
             
-            // Update UI
+            // Update UI and stats
             updateBarcodeCount();
+            appState.totalGenerated += generatedCount;
+            document.getElementById('totalGenerated').textContent = appState.totalGenerated;
+            
+            // Add to history
+            addToHistory(label || value, generatedCount);
             
             // Show success message
             if (generatedCount > 0) {
-                showStatus(`Successfully generated ${generatedCount} barcode${generatedCount !== 1 ? 's' : ''}`, 'success');
+                showStatus(`Generated ${generatedCount} barcode${generatedCount !== 1 ? 's' : ''} successfully`, 'success');
+                
+                // Clear inputs if single generation
+                if (quantity === 1) {
+                    document.getElementById('barcodeValue').value = '';
+                    document.getElementById('barcodeLabel').value = '';
+                    document.getElementById('barcodeDescription').value = '';
+                }
             }
             
-            // Clear inputs after generation if successful
-            if (generatedCount === quantity) {
-                document.getElementById('barcodeValue').value = '';
-                document.getElementById('barcodeLabel').value = '';
+            // Save to localStorage
+            saveToLocalStorage();
+        }
+
+        function previewBarcode() {
+            // This would show a single barcode preview modal
+            showStatus('Preview feature coming soon!', 'info');
+        }
+
+        function processBatch() {
+            const batchData = document.getElementById('batchData').value.trim();
+            if (!batchData) {
+                showStatus('Please enter batch data', 'error');
+                return;
+            }
+            
+            // Parse batch data
+            let items = [];
+            try {
+                // Try to parse as JSON first
+                if (batchData.trim().startsWith('[') || batchData.trim().startsWith('{')) {
+                    items = JSON.parse(batchData);
+                    if (!Array.isArray(items)) {
+                        items = [items];
+                    }
+                } else {
+                    // Parse as CSV
+                    items = parseCSV(batchData);
+                }
+            } catch (error) {
+                showStatus('Error parsing batch data: ' + error.message, 'error');
+                return;
+            }
+            
+            if (items.length === 0) {
+                showStatus('No valid items found in batch data', 'warning');
+                return;
+            }
+            
+            // Process each item
+            let processedCount = 0;
+            items.forEach((item, index) => {
+                setTimeout(() => {
+                    // Set values from batch item
+                    document.getElementById('barcodeLabel').value = item.sku || item.SKU || '';
+                    document.getElementById('barcodeValue').value = item.barcode || item.value || item.Barcode || '';
+                    document.getElementById('barcodeDescription').value = item.description || item.Description || '';
+                    
+                    // Generate barcode
+                    generateBarcode();
+                    processedCount++;
+                    
+                    // Update status
+                    if (processedCount === items.length) {
+                        showStatus(`Processed ${items.length} items from batch`, 'success');
+                    }
+                }, index * 100); // Stagger generation to avoid UI freezing
+            });
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const items = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].split(',').map(v => v.trim());
+                const item = {};
+                
+                headers.forEach((header, index) => {
+                    if (values[index]) {
+                        item[header.toLowerCase()] = values[index];
+                    }
+                });
+                
+                items.push(item);
+            }
+            
+            return items;
+        }
+
+        function loadSampleData() {
+            const sampleData = `SKU,Barcode,Product Name,Description,Price
+PANDORA-001,5901234567890,Silver Bracelet,Adjustable silver bracelet,149.99
+PANDORA-002,5909876543210,Gold Charm,14k gold charm with crystals,79.99
+PANDORA-003,5901122334455,Necklace,Silver necklace with pearl,199.99`;
+            
+            document.getElementById('batchData').value = sampleData;
+            showStatus('Loaded sample data', 'info');
+        }
+
+        function downloadTemplate() {
+            const template = `SKU,Barcode,Product Name,Description,Price,Category,Quantity
+PANDORA-001,5901234567890,Product Name,Description,99.99,Jewelry,1`;
+            
+            const blob = new Blob([template], { type: 'text/csv' });
+            saveAs(blob, 'barcode_template.csv');
+            showStatus('Template downloaded', 'success');
+        }
+
+        function searchDatabase() {
+            const query = document.getElementById('searchQuery').value.toLowerCase();
+            const resultsContainer = document.getElementById('databaseResults');
+            
+            // Clear previous results
+            resultsContainer.innerHTML = '';
+            
+            // Filter database
+            const results = Object.entries(mockDatabase)
+                .filter(([sku, product]) => {
+                    return sku.toLowerCase().includes(query) ||
+                           product.name.toLowerCase().includes(query) ||
+                           product.description.toLowerCase().includes(query);
+                })
+                .slice(0, 10); // Limit to 10 results
+            
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No products found</div>';
+                return;
+            }
+            
+            // Display results
+            results.forEach(([sku, product]) => {
+                const item = document.createElement('div');
+                item.className = 'product-item';
+                item.dataset.sku = sku;
+                item.innerHTML = `
+                    <div>
+                        <div class="product-sku">${sku}</div>
+                        <div class="product-name">${product.name}</div>
+                    </div>
+                    <div>
+                        <input type="checkbox" class="select-product" data-sku="${sku}">
+                    </div>
+                `;
+                
+                item.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('select-product')) {
+                        // Load this product
+                        document.getElementById('barcodeLabel').value = sku;
+                        document.getElementById('barcodeValue').value = product.barcode;
+                        document.getElementById('barcodeDescription').value = product.description;
+                        switchTab('basic');
+                    }
+                });
+                
+                resultsContainer.appendChild(item);
+            });
+            
+            // Update checkbox states
+            updateProductCheckboxes();
+        }
+
+        function updateProductCheckboxes() {
+            document.querySelectorAll('.select-product').forEach(checkbox => {
+                checkbox.checked = appState.selectedProducts.has(checkbox.dataset.sku);
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        appState.selectedProducts.add(this.dataset.sku);
+                    } else {
+                        appState.selectedProducts.delete(this.dataset.sku);
+                    }
+                });
+            });
+        }
+
+        function loadSelectedFromDatabase() {
+            if (appState.selectedProducts.size === 0) {
+                showStatus('No products selected', 'warning');
+                return;
+            }
+            
+            // Generate barcodes for selected products
+            appState.selectedProducts.forEach(sku => {
+                const product = mockDatabase[sku];
+                if (product) {
+                    document.getElementById('barcodeLabel').value = sku;
+                    document.getElementById('barcodeValue').value = product.barcode;
+                    document.getElementById('barcodeDescription').value = product.description;
+                    generateBarcode();
+                }
+            });
+            
+            // Clear selection
+            appState.selectedProducts.clear();
+            updateProductCheckboxes();
+            
+            showStatus(`Loaded ${appState.selectedProducts.size} products`, 'success');
+        }
+
+        function selectTemplate(element) {
+            // Remove selection from all templates
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select clicked template
+            element.classList.add('selected');
+            appState.selectedTemplate = element.dataset.template;
+            
+            // Apply template settings
+            applyTemplateSettings(appState.selectedTemplate);
+        }
+
+        function applyTemplateSettings(template) {
+            switch(template) {
+                case 'compact':
+                    document.getElementById('width').value = 40;
+                    document.getElementById('height').value = 20;
+                    document.getElementById('columns').value = 5;
+                    document.getElementById('fontSize').value = 8;
+                    break;
+                case 'detailed':
+                    document.getElementById('width').value = 60;
+                    document.getElementById('height').value = 30;
+                    document.getElementById('columns').value = 3;
+                    document.getElementById('fontSize').value = 12;
+                    break;
+                case 'price':
+                    document.getElementById('width').value = 50;
+                    document.getElementById('height').value = 25;
+                    document.getElementById('columns').value = 4;
+                    break;
+                case 'custom':
+                    // Open custom settings
+                    showStatus('Custom template selected - adjust settings as needed', 'info');
+                    break;
+                default: // 'default'
+                    document.getElementById('width').value = 50;
+                    document.getElementById('height').value = 25;
+                    document.getElementById('columns').value = 4;
+                    document.getElementById('fontSize').value = 10;
             }
         }
-        
-        function validateBarcodeValue(type, value) {
-            // Basic validation for different barcode types
-            switch(type) {
-                case 'EAN13':
-                    return /^\d{13}$/.test(value);
-                case 'UPC':
-                    return /^\d{12}$/.test(value);
-                case 'CODE39':
-                    return /^[A-Z0-9\-\.\ \$\/\+\%]+$/i.test(value);
-                case 'CODE128':
-                    // CODE128 is more flexible, but we'll check for at least one character
-                    return value.length > 0;
-                default:
-                    return true;
+
+        function applyTemplate() {
+            showStatus(`Applied "${appState.selectedTemplate}" template`, 'success');
+        }
+
+        function saveTemplate() {
+            const templateName = prompt('Enter a name for this template:');
+            if (templateName) {
+                // Save template to localStorage
+                const templates = JSON.parse(localStorage.getItem('pandoraTemplates') || '{}');
+                templates[templateName] = {
+                    width: document.getElementById('width').value,
+                    height: document.getElementById('height').value,
+                    columns: document.getElementById('columns').value,
+                    fontSize: document.getElementById('fontSize').value,
+                    margin: document.getElementById('margin').value,
+                    barcodeColor: document.getElementById('barcodeColor').value,
+                    backgroundColor: document.getElementById('backgroundColor').value,
+                    showText: document.getElementById('showText').checked,
+                    showBorder: document.getElementById('showBorder').checked,
+                    showLogo: document.getElementById('showLogo').checked
+                };
+                
+                localStorage.setItem('pandoraTemplates', JSON.stringify(templates));
+                showStatus(`Template "${templateName}" saved`, 'success');
             }
         }
-        
+
+        function exportBarcodes() {
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
+            
+            switch(format) {
+                case 'pdf':
+                    exportToPDF();
+                    break;
+                case 'png':
+                    exportToPNG();
+                    break;
+                case 'svg':
+                    exportToSVG();
+                    break;
+                case 'csv':
+                    exportToCSV();
+                    break;
+            }
+        }
+
+        function exportToPDF() {
+            showStatus('PDF export feature requires server-side processing. Use Print instead.', 'info');
+            
+            // Alternative: Create a printable version
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Pandora Barcodes - ${new Date().toLocaleDateString()}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .barcode-container { display: inline-block; margin: 10px; padding: 10px; border: 1px solid #ddd; text-align: center; }
+                        .barcode-label { font-weight: bold; margin-bottom: 5px; }
+                        svg { display: block; margin: 0 auto; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Pandora Barcodes</h1>
+                    <p>Generated on ${new Date().toLocaleString()}</p>
+                    ${document.getElementById('a4Page').innerHTML}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function exportToPNG() {
+            showStatus('Exporting as PNG images...', 'info');
+            
+            // This is a simplified version - in production, use html2canvas
+            const barcodes = document.querySelectorAll('.barcode-container');
+            if (barcodes.length === 0) {
+                showStatus('No barcodes to export', 'warning');
+                return;
+            }
+            
+            // Create ZIP file
+            const zip = new JSZip();
+            barcodes.forEach((barcode, index) => {
+                // Convert SVG to data URL (simplified)
+                const svg = barcode.querySelector('svg');
+                if (svg) {
+                    const svgData = new XMLSerializer().serializeToString(svg);
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        canvas.toBlob(function(blob) {
+                            zip.file(`barcode_${index + 1}.png`, blob);
+                            
+                            // If this is the last barcode, create the ZIP
+                            if (index === barcodes.length - 1) {
+                                zip.generateAsync({type: 'blob'}).then(function(content) {
+                                    saveAs(content, 'pandora_barcodes.zip');
+                                    showStatus(`Exported ${barcodes.length} barcodes as PNG`, 'success');
+                                });
+                            }
+                        });
+                    };
+                    
+                    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+                }
+            });
+        }
+
+        function exportToSVG() {
+            const barcodes = document.querySelectorAll('.barcode-container');
+            if (barcodes.length === 0) {
+                showStatus('No barcodes to export', 'warning');
+                return;
+            }
+            
+            const zip = new JSZip();
+            barcodes.forEach((barcode, index) => {
+                const svg = barcode.querySelector('svg');
+                if (svg) {
+                    const svgData = new XMLSerializer().serializeToString(svg);
+                    zip.file(`barcode_${index + 1}.svg`, svgData);
+                }
+            });
+            
+            zip.generateAsync({type: 'blob'}).then(function(content) {
+                saveAs(content, 'pandora_barcodes_svg.zip');
+                showStatus(`Exported ${barcodes.length} barcodes as SVG`, 'success');
+            });
+        }
+
+        function exportToCSV() {
+            if (appState.currentBarcodes.length === 0) {
+                showStatus('No barcodes to export', 'warning');
+                return;
+            }
+            
+            const headers = ['ID', 'Barcode Value', 'SKU/Label', 'Description', 'Type', 'Timestamp'];
+            const rows = appState.currentBarcodes.map(barcode => [
+                barcode.id,
+                barcode.value,
+                barcode.label,
+                barcode.description,
+                barcode.type,
+                new Date(barcode.timestamp).toLocaleString()
+            ]);
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            saveAs(blob, 'pandora_barcodes_export.csv');
+            showStatus(`Exported ${appState.currentBarcodes.length} barcodes as CSV`, 'success');
+        }
+
+        function shareBarcodes() {
+            if (appState.currentBarcodes.length === 0) {
+                showStatus('No barcodes to share', 'warning');
+                return;
+            }
+            
+            // Create shareable link (simulated)
+            const shareData = {
+                title: 'Pandora Barcodes',
+                text: `Check out these ${appState.currentBarcodes.length} barcodes I generated`,
+                url: window.location.href
+            };
+            
+            if (navigator.share) {
+                navigator.share(shareData)
+                    .then(() => showStatus('Barcodes shared successfully', 'success'))
+                    .catch(() => showStatus('Sharing cancelled', 'info'));
+            } else {
+                // Fallback: Copy to clipboard
+                const textToCopy = `Pandora Barcodes (${appState.currentBarcodes.length} items)\nGenerated: ${new Date().toLocaleString()}\n\n`;
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => showStatus('Barcode info copied to clipboard', 'success'))
+                    .catch(() => showStatus('Could not copy to clipboard', 'error'));
+            }
+        }
+
+        function duplicateBarcodes() {
+            if (appState.currentBarcodes.length === 0) {
+                showStatus('No barcodes to duplicate', 'warning');
+                return;
+            }
+            
+            // Duplicate each barcode
+            const originalCount = appState.currentBarcodes.length;
+            appState.currentBarcodes.forEach((barcode, index) => {
+                setTimeout(() => {
+                    document.getElementById('barcodeLabel').value = barcode.label;
+                    document.getElementById('barcodeValue').value = barcode.value;
+                    document.getElementById('barcodeDescription').value = barcode.description;
+                    document.getElementById('barcodeType').value = barcode.type;
+                    generateBarcode();
+                    
+                    if (index === originalCount - 1) {
+                        showStatus(`Duplicated ${originalCount} barcodes`, 'success');
+                    }
+                }, index * 100);
+            });
+        }
+
         function clearBarcodes() {
             const barcodeCount = document.querySelectorAll('.barcode-container').length;
             if (barcodeCount === 0) {
@@ -626,28 +1847,200 @@
                 return;
             }
             
-            if (confirm(`Are you sure you want to clear all ${barcodeCount} barcodes?`)) {
+            if (confirm(`Clear all ${barcodeCount} barcodes?`)) {
                 document.getElementById('a4Page').innerHTML = '';
-                const emptyState = document.getElementById('emptyState');
-                emptyState.style.display = 'block';
+                appState.currentBarcodes = [];
                 updateBarcodeCount();
                 showStatus('All barcodes cleared', 'info');
+                
+                // Show empty state
+                const emptyState = document.getElementById('emptyState');
+                emptyState.style.display = 'block';
             }
         }
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            updateBarcodeCount();
+
+        function clearBatch() {
+            document.getElementById('batchData').value = '';
+            showStatus('Batch data cleared', 'info');
+        }
+
+        function zoomIn() {
+            appState.zoomLevel = Math.min(appState.zoomLevel + 0.1, 2);
+            document.getElementById('a4Page').style.transform = `scale(${appState.zoomLevel})`;
+            document.getElementById('a4Page').style.transformOrigin = 'top center';
+        }
+
+        function zoomOut() {
+            appState.zoomLevel = Math.max(appState.zoomLevel - 0.1, 0.5);
+            document.getElementById('a4Page').style.transform = `scale(${appState.zoomLevel})`;
+            document.getElementById('a4Page').style.transformOrigin = 'top center';
+        }
+
+        function showHelp() {
+            document.getElementById('helpModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function addToHistory(label, count) {
+            const historyItem = {
+                label: label,
+                count: count,
+                timestamp: new Date().toISOString()
+            };
             
-            // Add example data on double-click of SKU field
-            document.getElementById('barcodeLabel').addEventListener('dblclick', function() {
-                if (!this.value) {
-                    this.value = 'PANDORA-001';
-                    document.getElementById('barcodeValue').value = '5901234567890';
-                }
+            appState.history.unshift(historyItem);
+            
+            // Keep only last 50 items
+            if (appState.history.length > 50) {
+                appState.history = appState.history.slice(0, 50);
+            }
+            
+            // Update history display
+            updateHistoryDisplay();
+            
+            // Save to localStorage
+            localStorage.setItem('pandoraHistory', JSON.stringify(appState.history));
+        }
+
+        function loadHistory() {
+            const savedHistory = localStorage.getItem('pandoraHistory');
+            if (savedHistory) {
+                appState.history = JSON.parse(savedHistory);
+                updateHistoryDisplay();
+            }
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            appState.history.slice(0, 10).forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div>${item.label || 'Untitled'}</div>
+                    <div class="history-time">
+                        ${new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${item.count} barcode${item.count !== 1 ? 's' : ''}
+                    </div>
+                `;
+                
+                historyItem.addEventListener('click', function() {
+                    // Load this item from history (simplified)
+                    document.getElementById('barcodeLabel').value = item.label;
+                    showStatus('Loaded from history', 'info');
+                });
+                
+                historyList.appendChild(historyItem);
             });
-        });
+        }
+
+        function updateTotalGenerated() {
+            const savedTotal = localStorage.getItem('pandoraTotalGenerated');
+            if (savedTotal) {
+                appState.totalGenerated = parseInt(savedTotal);
+                document.getElementById('totalGenerated').textContent = appState.totalGenerated;
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('pandoraTotalGenerated', appState.totalGenerated.toString());
+            
+            // Update last sync time
+            document.getElementById('lastSync').textContent = new Date().toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function loadSettings() {
+            const defaultSettings = {
+                paperSize: 'A4',
+                orientation: 'portrait',
+                printQuality: 'high',
+                margins: 15,
+                exportFormat: 'pdf',
+                autoSave: true,
+                darkMode: false
+            };
+            
+            const savedSettings = localStorage.getItem('pandoraSettings');
+            return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
+        }
+
+        function applySettings() {
+            const settings = appState.settings;
+            
+            if (document.getElementById('paperSize')) {
+                document.getElementById('paperSize').value = settings.paperSize;
+                document.getElementById('orientation').value = settings.orientation;
+                document.getElementById('printQuality').value = settings.printQuality;
+                document.getElementById('margins').value = settings.margins;
+                
+                // Set export format
+                document.querySelector(`input[name="exportFormat"][value="${settings.exportFormat}"]`).checked = true;
+            }
+            
+            // Apply dark mode if enabled
+            if (settings.darkMode) {
+                document.body.style.backgroundColor = '#1a1a2e';
+                document.body.style.color = '#f1f1f1';
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                paperSize: document.getElementById('paperSize').value,
+                orientation: document.getElementById('orientation').value,
+                printQuality: document.getElementById('printQuality').value,
+                margins: parseInt(document.getElementById('margins').value),
+                exportFormat: document.querySelector('input[name="exportFormat"]:checked').value,
+                autoSave: true,
+                darkMode: appState.settings.darkMode
+            };
+            
+            appState.settings = settings;
+            localStorage.setItem('pandoraSettings', JSON.stringify(settings));
+            showStatus('Settings saved successfully', 'success');
+        }
+
+        function resetSettings() {
+            if (confirm('Reset all settings to defaults?')) {
+                localStorage.removeItem('pandoraSettings');
+                appState.settings = loadSettings();
+                applySettings();
+                showStatus('Settings reset to defaults', 'success');
+            }
+        }
+
+        function validateBarcodeValue(type, value) {
+            switch(type) {
+                case 'EAN13':
+                    return /^\d{13}$/.test(value);
+                case 'UPC':
+                    return /^\d{12}$/.test(value);
+                case 'CODE39':
+                    return /^[A-Z0-9\-\.\ \$\/\+\%]+$/i.test(value);
+                case 'ITF14':
+                    return /^\d{14}$/.test(value);
+                case 'CODE128':
+                    return value.length > 0;
+                default:
+                    return true;
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
     </script>
 </body>
 </html>
+
 
